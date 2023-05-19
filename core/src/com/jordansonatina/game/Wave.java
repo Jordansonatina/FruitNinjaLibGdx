@@ -3,11 +3,17 @@ package com.jordansonatina.game;
 import java.util.ArrayList;
 
 public class Wave {
-    private ArrayList<Fruit> fruits;
+    private ArrayList<Veggie> veggies;
     private int size;
 
     private int timeBetweenThrow;
     private int tick;
+
+    private int maxThrowTime;
+    private int minThrowTime;
+
+    private int maxSize;
+    private int minSize;
 
     private boolean finished;
 
@@ -16,38 +22,50 @@ public class Wave {
         finished = false;
         tick = 0;
         timeBetweenThrow = 45;
-        size = (int)(Math.random() * (6-2)+2);
-        fruits = new ArrayList<>();
+
+        maxThrowTime = 60;
+        minThrowTime = 30;
+
+        maxSize = 8;
+        minSize = 2;
+
+        size = (int)(Math.random() * ((maxSize+1)-minSize)+minSize);
+        veggies = new ArrayList<>();
     }
 
-    public ArrayList<Fruit> getFruit() {return fruits;}
+    public ArrayList<Veggie> getVeggie() {return veggies;}
     public boolean isFinished() {return finished;}
 
     public void throwFruit()
     {
-        if (fruits.size() == size)
+        if (veggies.size() == size)
             finished = true;
 
         tick++;
         if (tick > timeBetweenThrow)
             tick = 0;
 
+        // actually throwing the fruit
         if (!finished && tick == timeBetweenThrow-1)
-            fruits.add(new Fruit());
+        {
+            veggies.add(new Veggie());
+            timeBetweenThrow = (int)(Math.random() * ((maxThrowTime+1) - minThrowTime) + minThrowTime);
+        }
+
 
     }
 
-    private void removeFruit()
+    private void removeVeggie()
     {
-        for (int i = 0; i < fruits.size(); i++)
+        for (int i = 0; i < veggies.size(); i++)
         {
-            fruits.clear();
+            veggies.clear();
         }
     }
 
     public void resetWave()
     {
-        removeFruit();
+        removeVeggie();
         finished = false;
         tick = 0;
         size = (int)(Math.random() * (6-2)+2);
