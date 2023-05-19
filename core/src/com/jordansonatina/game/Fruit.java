@@ -19,10 +19,6 @@ public class Fruit {
         position.add(velocity);
         velocity.add(new Vector2(0, Constants.GRAVITY));
 
-        if (position.y + radius < 0) {
-            position = new Vector2((int)(Math.random() * ((Constants.WIDTH-radius)-radius) + radius), -radius/2);
-            velocity = new Vector2(0, (int)(Math.random() * (20-15)+15));
-        }
     }
 
     public Vector2 getPos() {return position;}
