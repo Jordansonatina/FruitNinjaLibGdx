@@ -37,23 +37,19 @@ public class Wave {
 
     }
 
-    public void removeOutOfBoundsFruit()
+    private void removeFruit()
     {
         for (int i = 0; i < fruits.size(); i++)
         {
-            Fruit temp = fruits.get(i);
-            if (temp.getPos().y + temp.getRadius() < 0) {
-                fruits.remove(i);
-                i--;
-            }
+            fruits.clear();
         }
     }
 
     public void resetWave()
     {
+        removeFruit();
         finished = false;
         tick = 0;
-        timeBetweenThrow = 30;
         size = (int)(Math.random() * (6-2)+2);
     }
 }

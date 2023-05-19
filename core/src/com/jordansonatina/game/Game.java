@@ -20,16 +20,14 @@ public class Game extends ApplicationAdapter {
 		renderer = new ShapeRenderer();
 		wave = new Wave();
 		tick = 0;
-		timeBetweenWaves = 300;
+		timeBetweenWaves = 500;
 	}
 
 	@Override
 	public void render () {
 		ScreenUtils.clear(0, 0, 0, 1);
 
-		clock();
-
-		wave.removeOutOfBoundsFruit();
+		tick();
 
 		if (wave.isFinished() && timeForNextWave())
 			wave.resetWave();
@@ -42,7 +40,7 @@ public class Game extends ApplicationAdapter {
 
 	}
 
-	private void clock()
+	private void tick()
 	{
 		tick++;
 		if (tick > timeBetweenWaves)
