@@ -6,15 +6,16 @@ public class Veggie {
     private Vector2 position;
     private Vector2 velocity;
 
-    private int radius;
+    private final int radius;
 
-    private int rightSpawnBounds;
-    private int leftSpawnBounds;
+    private final int rightSpawnBounds;
+    private final int leftSpawnBounds;
 
     private String type;
 
-    public Veggie()
+    public Veggie(String type)
     {
+        this.type = type;
         leftSpawnBounds = 200;
         rightSpawnBounds = Constants.WIDTH - 200;
         radius = 50;
@@ -37,4 +38,7 @@ public class Veggie {
     public Vector2 getPos() {return position;}
     public Vector2 getVel() {return velocity;}
     public int getRadius() {return radius;}
+
+    public String getType() {return type;}
+    public void setType(String n){ type = n;}
 }

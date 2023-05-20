@@ -5,4 +5,7 @@ public class Constants {
     public static int WIDTH = 1280;
     public static int HEIGHT = 720;
     public static float GRAVITY = -0.4f;
+
+    public static int MENU = 0;
+    public static int PLAYING = 1;
 }

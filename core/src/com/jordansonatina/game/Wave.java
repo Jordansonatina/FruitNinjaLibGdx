@@ -15,7 +15,11 @@ public class Wave {
     private int maxSize;
     private int minSize;
 
+    private String[] types = {"Cabbage", "BellPepper"};
+
     private boolean finished;
+
+    private int theThrows;
 
     public Wave()
     {
@@ -25,6 +29,8 @@ public class Wave {
 
         maxThrowTime = 60;
         minThrowTime = 30;
+
+        theThrows = 0;
 
         maxSize = 8;
         minSize = 2;
@@ -36,9 +42,12 @@ public class Wave {
     public ArrayList<Veggie> getVeggie() {return veggies;}
     public boolean isFinished() {return finished;}
 
+
+
+
     public void throwFruit()
     {
-        if (veggies.size() == size)
+        if (theThrows == size)
             finished = true;
 
         tick++;
@@ -48,14 +57,22 @@ public class Wave {
         // actually throwing the fruit
         if (!finished && tick == timeBetweenThrow-1)
         {
-            veggies.add(new Veggie());
+            theThrows++;
+            Game.throwSound.play();
+            int randomType = (int)(Math.random() * types.length);
+            veggies.add(new Veggie(types[randomType]));
             timeBetweenThrow = (int)(Math.random() * ((maxThrowTime+1) - minThrowTime) + minThrowTime);
         }
 
 
     }
 
-    private void removeVeggie()
+    public void slice(Veggie v)
+    {
+        v.setType("Sliced");
+    }
+
+    private void removeVeggies()
     {
         for (int i = 0; i < veggies.size(); i++)
         {
@@ -65,7 +82,8 @@ public class Wave {
 
     public void resetWave()
     {
-        removeVeggie();
+        removeVeggies();
+        theThrows = 0;
         finished = false;
         tick = 0;
         size = (int)(Math.random() * (6-2)+2);
