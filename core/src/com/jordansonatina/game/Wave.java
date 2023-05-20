@@ -58,7 +58,7 @@ public class Wave {
         if (!finished && tick == timeBetweenThrow-1)
         {
             theThrows++;
-            Game.throwSound.play();
+            //Game.throwSound.play();
             int randomType = (int)(Math.random() * types.length);
             veggies.add(new Veggie(types[randomType]));
             timeBetweenThrow = (int)(Math.random() * ((maxThrowTime+1) - minThrowTime) + minThrowTime);
