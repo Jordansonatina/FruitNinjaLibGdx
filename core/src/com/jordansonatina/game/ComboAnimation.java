@@ -2,21 +2,20 @@ package com.jordansonatina.game;
 
 import com.badlogic.gdx.math.Vector2;
 
-public class ComboAnimation {
+public class ComboAnimation extends Animation{
 
-    public int type;
-    public int animationTimer = 0;
-    public int animationLasts = 30;
-
-    public Vector2 position;
+    private int animationTimer = 0;
+    private int animationLasts = 60;
 
     public boolean done;
-    public ComboAnimation(Vector2 position)
+    public ComboAnimation()
     {
         done = false;
-        this.position = position;
     }
 
+    public int getAnimationTimer() {return animationTimer;}
+    public int getAnimationLasts() {return animationLasts;}
+    public boolean isDone() {return done;}
     public void time()
     {
         animationTimer++;
@@ -24,8 +23,7 @@ public class ComboAnimation {
             done = true;
     }
 
-    public int getAnimationTimer() {return animationTimer;}
-    public boolean isDone() {return done;}
-    public Vector2 getPos() {return position;}
+
+
 
 }

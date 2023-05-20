@@ -29,6 +29,9 @@ public class Game extends ApplicationAdapter {
 	Texture bellPepperTex;
 	Sprite bellPepperSprite;
 
+	Texture potatoTex;
+	Sprite potatoSprite;
+
 	Texture menuTex;
 	Sprite menuSprite;
 
@@ -39,6 +42,10 @@ public class Game extends ApplicationAdapter {
 	public static Sound throwSound;
 
 	public static Sound combo3Sound;
+
+	public static Sound criticalSound;
+	public static Sound sliceSound;
+
 
 	public String directory;
 
@@ -53,6 +60,9 @@ public class Game extends ApplicationAdapter {
 	private boolean comboStarted;
 
 	public static int score;
+	public static int highScore;
+
+	public Timer timer;
 
 	public static int GAMESTATE;
 
@@ -63,7 +73,7 @@ public class Game extends ApplicationAdapter {
 
 	BitmapFont font;
 
-	ArrayList<ComboAnimation> comboAnimation;
+	ArrayList<Animation> animations;
 
 	private void loadTextures()
 	{
@@ -78,12 +88,17 @@ public class Game extends ApplicationAdapter {
 
 		menuTex = new Texture(Gdx.files.internal(directory + "/MenuScreen.jpg"));
 		menuSprite = new Sprite(menuTex);
+
+		potatoTex = new Texture(Gdx.files.internal(directory + "/veggies/potato.png"));
+		potatoSprite = new Sprite(potatoTex);
 	}
 
 	private void loadSounds()
 	{
 		throwSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/throw.wav"));
 		combo3Sound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/combo-3.wav"));
+		criticalSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Critical.wav"));
+		sliceSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Clean-Slice-1.wav"));
 	}
 
 	@Override
@@ -93,14 +108,17 @@ public class Game extends ApplicationAdapter {
 		font = new BitmapFont();
 		wave = new Wave();
 		blade = new Blade();
-		comboAnimation = new ArrayList<>();
+		animations = new ArrayList<>();
 		comboStarted = false;
 		waveTimer = 0;
-		timeBetweenWaves = 300;
+
+		timer = new Timer(60);
 
 
+		timeBetweenWaves = 200;
 
-		timeFrameForCombo = 30;
+		timeFrameForCombo = 10;
+
 		comboTimer = 0;
 		combo = 0;
 		lastCombo = 0;
@@ -141,10 +159,17 @@ public class Game extends ApplicationAdapter {
 
 		slicing = Gdx.input.isButtonPressed(0);
 
-		//timeCombo();
+
+
 
 		if (GAMESTATE == Constants.PLAYING) {
-			if (wave.isFinished()) {
+			timer.countDown();
+
+			if (score > highScore)
+				highScore = score;
+
+										// game timer
+			if (wave.isFinished() && !timer.isFinished()) {
 				waveTimer(); // count down for next wave
 				if (timeForNextWave()) {
 					wave.resetWave();
@@ -156,25 +181,67 @@ public class Game extends ApplicationAdapter {
 			batch.begin();
 			backgroundSprite.draw(batch);
 			updateAndDrawFruit();
-			font.draw(batch, "Score: " + score, 5, Constants.HEIGHT);
+
+
+			// UI for SCORING
+			cabbageSprite.setSize(100, 100);
+			cabbageSprite.setColor(1f, 1f, 1f, 1f);
+			cabbageSprite.setPosition(0, Constants.HEIGHT-100);
+			cabbageSprite.draw(batch);
+			font.setColor(new Color(0.9f, 0.9f, 0.3f, 1f));
+			font.draw(batch, String.valueOf(score), 100, Constants.HEIGHT-10);
+			font.getData().setScale(0.5f);
+			font.setColor(new Color(0f, 0.9f, 0f, 1f));
+			font.draw(batch, String.valueOf(highScore), 110, Constants.HEIGHT-100);
 
 			// combo animations
-			for (int i = 0; i < comboAnimation.size(); i++)
+			for (int i = 0; i < animations.size(); i++)
 			{
-				ComboAnimation temp = comboAnimation.get(i);
+				Animation temp = animations.get(i);
 
 				if (!temp.isDone())
 				{
-					temp.time();
-					font.setColor(Color.YELLOW);
-					font.draw(batch, "COMBO " + lastCombo, temp.getPos().x-150, temp.getPos().y);
-					font.setColor(Color.WHITE);
+					if (temp instanceof ComboAnimation)
+					{
+						temp.time();
+						if (lastCombo == 3)
+							font.setColor(new Color(1f, 1f, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						else if (lastCombo == 4)
+							font.setColor(new Color(1f, 0.8f, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						else if (lastCombo == 5)
+							font.setColor(new Color(1f, 0.6f, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						else if (lastCombo == 6)
+							font.setColor(new Color(1f, 0.4f, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						else if (lastCombo == 7)
+							font.setColor(new Color(1f, 0.2f, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
+						font.draw(batch, lastCombo + " veggie combo", Constants.WIDTH/2, Constants.HEIGHT/2);
+
+					} else if (temp instanceof CriticalAnimation)
+					{
+						temp.time();
+						font.setColor(new Color(0f, 1f, 1f, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
+						font.draw(batch, "critical \n   +10", Constants.WIDTH/2, Constants.HEIGHT/2);
+
+
+					}
+
 				} else {
-					comboAnimation.remove(i);
+					animations.remove(i);
 					i--;
 				}
 
+
+
+
 			}
+
+			// set everything back to normal for other font
+			font.getData().setScale(1f);
+			font.setColor(Color.WHITE);
+			// draw the game time counting down
+			drawTimer();
 
 			batch.end();
 
@@ -226,6 +293,60 @@ public class Game extends ApplicationAdapter {
 		renderer.rectLine(blade.getPrevPos(), blade.getPos(), 10);
 	}
 
+	private void drawTimer()
+	{
+		font.draw(batch, String.valueOf(timer.getGameTime()), Constants.WIDTH-100, Constants.HEIGHT-10);
+	}
+
+	private void determineCombo()
+	{
+		switch (combo)
+		{
+			case 3:
+				lastCombo = 3;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 4:
+				lastCombo = 4;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 5:
+				lastCombo = 5;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 6:
+				lastCombo = 6;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 7:
+				lastCombo = 7;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 8:
+				lastCombo = 8;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+			case 9:
+				lastCombo = 9;
+				animations.add(new ComboAnimation());
+				combo3Sound.play();
+				score += combo * 2;
+				break;
+		}
+	}
+
 
 	private void updateAndDrawFruit()
 	{
@@ -234,6 +355,7 @@ public class Game extends ApplicationAdapter {
 			timeCombo();
 			if (comboTimer > timeFrameForCombo - 1)
 			{
+				determineCombo();
 				comboStarted = false;
 				comboTimer = 0;
 				combo = 0;
@@ -248,22 +370,24 @@ public class Game extends ApplicationAdapter {
 
 			float distanceFromCursorToFruit = (float)Math.sqrt(Math.pow((f.getPos().x+f.getRadius()) - mousePos.x, 2) + Math.pow((f.getPos().y+f.getRadius()) - (720-mousePos.y), 2));
 
-			if (slicing && distanceFromCursorToFruit <= f.getRadius() && !f.getType().equals("Sliced"))
+			if (slicing && distanceFromCursorToFruit <= f.getRadius()+20 && !f.getType().equals("Sliced"))
 			{
 				wave.slice(f);
 
-				comboStarted = true;
-				combo++;
-				score++;
-
-				switch (combo)
-				{
-					case 3:
-						lastCombo = 3;
-						comboAnimation.add(new ComboAnimation(new Vector2(mousePos.x, Constants.HEIGHT - mousePos.y)));
-						//combo3Sound.play();
-
+				if (f.isCritical()==1) {
+					animations.add(new CriticalAnimation());
+					criticalSound.play();
+					score += 10;
 				}
+				else {
+					sliceSound.play();
+					score++;
+				}
+
+				comboStarted = true;
+				comboTimer = 0;
+				combo++;
+
 			}
 
 			float distanceY = ((float) Constants.HEIGHT /2 - f.getPos().y)/((float) Constants.HEIGHT /2);
@@ -291,6 +415,18 @@ public class Game extends ApplicationAdapter {
 				bellPepperSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
 				bellPepperSprite.setPosition(f.getPos().x, f.getPos().y);
 				bellPepperSprite.draw(batch);
+			} else if (f.getType().equals("Potato"))
+			{
+				// Potato ___________________________
+				// cast shadow on wall
+				potatoSprite.setSize(f.getRadius() * 2, f.getRadius() * 2);
+				potatoSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
+				potatoSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
+				potatoSprite.draw(batch);
+
+				potatoSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
+				potatoSprite.setPosition(f.getPos().x, f.getPos().y);
+				potatoSprite.draw(batch);
 			}
 
 		}

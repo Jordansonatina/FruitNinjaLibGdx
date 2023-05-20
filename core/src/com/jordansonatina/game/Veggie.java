@@ -11,21 +11,40 @@ public class Veggie {
     private final int rightSpawnBounds;
     private final int leftSpawnBounds;
 
+    private int maxVelocity;
+    private int minVelocity;
+
+    private int isCritical;
+
     private String type;
 
     public Veggie(String type)
     {
+        maxVelocity = 17;
+        minVelocity = 14;
         this.type = type;
         leftSpawnBounds = 200;
         rightSpawnBounds = Constants.WIDTH - 200;
         radius = 50;
         newPosition();
 
+        if (Math.random() < 0.05)
+            isCritical = 1;
+        else
+            isCritical = 0;
+
     }
     private void newPosition()
     {
+        int velocityX = 0;
         position = new Vector2((int)(Math.random() * (rightSpawnBounds - leftSpawnBounds)+leftSpawnBounds), -radius/2);
-        velocity = new Vector2(0, (int)(Math.random() * (23-18)+18));
+        // if veggie spawns to the right make velocity negative and vice versa so the veggies bundle in the middle
+        if (position.x > Constants.WIDTH/2)
+            velocityX = (int)(Math.random()*(3)-3);
+        else
+            velocityX = (int)(Math.random()*3);
+        velocity = new Vector2(velocityX, (int)(Math.random() * (maxVelocity+1-minVelocity)+minVelocity));
+
     }
 
     public void update()
@@ -41,4 +60,6 @@ public class Veggie {
 
     public String getType() {return type;}
     public void setType(String n){ type = n;}
+
+    public int isCritical() {return isCritical;}
 }

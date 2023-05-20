@@ -15,25 +15,28 @@ public class Wave {
     private int maxSize;
     private int minSize;
 
-    private String[] types = {"Cabbage", "BellPepper"};
+    private String[] types = {"Cabbage", "BellPepper", "Potato"};
 
     private boolean finished;
 
     private int theThrows;
+
+    private int slices;
 
     public Wave()
     {
         finished = false;
         tick = 0;
         timeBetweenThrow = 45;
+        slices = 0;
 
-        maxThrowTime = 60;
-        minThrowTime = 30;
+        maxThrowTime = 40;
+        minThrowTime = 20;
 
         theThrows = 0;
 
-        maxSize = 8;
-        minSize = 2;
+        maxSize = 20;
+        minSize = 10;
 
         size = (int)(Math.random() * ((maxSize+1)-minSize)+minSize);
         veggies = new ArrayList<>();
@@ -47,8 +50,9 @@ public class Wave {
 
     public void throwFruit()
     {
-        if (theThrows == size)
+        if (theThrows >= size)
             finished = true;
+
 
         tick++;
         if (tick > timeBetweenThrow)
@@ -58,7 +62,7 @@ public class Wave {
         if (!finished && tick == timeBetweenThrow-1)
         {
             theThrows++;
-            //Game.throwSound.play();
+            Game.throwSound.play();
             int randomType = (int)(Math.random() * types.length);
             veggies.add(new Veggie(types[randomType]));
             timeBetweenThrow = (int)(Math.random() * ((maxThrowTime+1) - minThrowTime) + minThrowTime);
@@ -69,7 +73,22 @@ public class Wave {
 
     public void slice(Veggie v)
     {
+        slices++;
         v.setType("Sliced");
+    }
+
+    private boolean allHaveFallen()
+    {
+        int fallen = 0;
+        for (Veggie v : veggies)
+        {
+            if (v.getVel().y < 0 && !v.getType().equals("Sliced") && v.getPos().y <= 30)
+                fallen++;
+        }
+        if (fallen >= size)
+            return true;
+        else
+            return false;
     }
 
     private void removeVeggies()
@@ -86,6 +105,7 @@ public class Wave {
         theThrows = 0;
         finished = false;
         tick = 0;
-        size = (int)(Math.random() * (6-2)+2);
+        slices = 0;
+        size = (int)(Math.random() * (maxSize+1-minSize)+minSize);
     }
 }
