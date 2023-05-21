@@ -1,5 +1,7 @@
 package com.jordansonatina.game;
 
+import com.badlogic.gdx.math.Vector2;
+
 import java.util.ArrayList;
 
 public class Wave {
@@ -15,9 +17,17 @@ public class Wave {
     private int maxSize;
     private int minSize;
 
+    private boolean pumpkinOut;
+
+    private int pumpkinMaxTime;
+    private int pumpkinTimer;
+
     private String[] types = {"Cabbage", "BellPepper", "Potato"};
 
+
     private boolean finished;
+
+    private boolean isPumpkinTime;
 
     private int theThrows;
 
@@ -30,6 +40,10 @@ public class Wave {
         timeBetweenThrow = 45;
         slices = 0;
 
+        pumpkinMaxTime = 100;
+        pumpkinTimer = 0;
+        isPumpkinTime = false;
+
         maxThrowTime = 40;
         minThrowTime = 20;
 
@@ -38,20 +52,53 @@ public class Wave {
         maxSize = 20;
         minSize = 10;
 
+        pumpkinOut = false;
+
         size = (int)(Math.random() * ((maxSize+1)-minSize)+minSize);
         veggies = new ArrayList<>();
     }
 
     public ArrayList<Veggie> getVeggie() {return veggies;}
     public boolean isFinished() {return finished;}
+    public boolean isPumpkinTime() {return isPumpkinTime;}
+
+    public void setPumpkinTime(boolean n) {isPumpkinTime = n;}
 
 
+    public void startPumpkinTimer()
+    {
+        if (pumpkinTimer == 0)
+            freezePumpkin();
 
+        pumpkinTimer++;
+        isPumpkinTime = true;
+
+        if (pumpkinTimer >= pumpkinMaxTime)
+        {
+            System.out.println(pumpkinTimer);
+            pumpkinOut = false;
+            removeVeggies();
+        }
+    }
+
+    private void freezePumpkin()
+    {
+        veggies.get(0).setVel(Vector2.Zero);
+    }
 
     public void throwFruit()
     {
-        if (theThrows >= size)
+        if (theThrows >= size) {
             finished = true;
+        }
+
+        // throw pumpkin at the very end of the game
+        if (Game.timer.isFinished() && !pumpkinOut && finished)
+        {
+            removeVeggies();
+            pumpkinOut = true;
+            veggies.add(new Veggie("Pumpkin"));
+        }
 
 
         tick++;
@@ -77,19 +124,6 @@ public class Wave {
         v.setType("Sliced");
     }
 
-    private boolean allHaveFallen()
-    {
-        int fallen = 0;
-        for (Veggie v : veggies)
-        {
-            if (v.getVel().y < 0 && !v.getType().equals("Sliced") && v.getPos().y <= 30)
-                fallen++;
-        }
-        if (fallen >= size)
-            return true;
-        else
-            return false;
-    }
 
     private void removeVeggies()
     {

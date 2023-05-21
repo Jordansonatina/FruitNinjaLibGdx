@@ -16,8 +16,11 @@ public class Timer {
 
     public void countDown()
     {
-        if (gameTime == 0)
+        if (gameTime == -1) {
             finished = true;
+            Game.timeUpSound.play();
+            gameTime = 0;
+        }
 
         tick++;
 

@@ -32,6 +32,9 @@ public class Game extends ApplicationAdapter {
 	Texture potatoTex;
 	Sprite potatoSprite;
 
+	Texture pumpkinTex;
+	Sprite pumpkinSprite;
+
 	Texture menuTex;
 	Sprite menuSprite;
 
@@ -45,6 +48,7 @@ public class Game extends ApplicationAdapter {
 
 	public static Sound criticalSound;
 	public static Sound sliceSound;
+	public static Sound timeUpSound;
 
 
 	public String directory;
@@ -62,7 +66,7 @@ public class Game extends ApplicationAdapter {
 	public static int score;
 	public static int highScore;
 
-	public Timer timer;
+	public static Timer timer;
 
 	public static int GAMESTATE;
 
@@ -91,6 +95,9 @@ public class Game extends ApplicationAdapter {
 
 		potatoTex = new Texture(Gdx.files.internal(directory + "/veggies/potato.png"));
 		potatoSprite = new Sprite(potatoTex);
+
+		pumpkinTex = new Texture(Gdx.files.internal(directory + "/veggies/pumpkin.png"));
+		pumpkinSprite = new Sprite(pumpkinTex);
 	}
 
 	private void loadSounds()
@@ -99,6 +106,7 @@ public class Game extends ApplicationAdapter {
 		combo3Sound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/combo-3.wav"));
 		criticalSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Critical.wav"));
 		sliceSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Clean-Slice-1.wav"));
+		timeUpSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/time-up.wav"));
 	}
 
 	@Override
@@ -158,9 +166,6 @@ public class Game extends ApplicationAdapter {
 
 
 		slicing = Gdx.input.isButtonPressed(0);
-
-
-
 
 		if (GAMESTATE == Constants.PLAYING) {
 			timer.countDown();
@@ -231,10 +236,6 @@ public class Game extends ApplicationAdapter {
 					animations.remove(i);
 					i--;
 				}
-
-
-
-
 			}
 
 			// set everything back to normal for other font
@@ -263,8 +264,6 @@ public class Game extends ApplicationAdapter {
 		renderer.setColor(Color.WHITE);
 		updateBladePositionAndDraw();
 		renderer.end();
-
-
 	}
 	private void waveTimer()
 	{
@@ -300,53 +299,12 @@ public class Game extends ApplicationAdapter {
 
 	private void determineCombo()
 	{
-		switch (combo)
-		{
-			case 3:
-				lastCombo = 3;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 4:
-				lastCombo = 4;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 5:
-				lastCombo = 5;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 6:
-				lastCombo = 6;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 7:
-				lastCombo = 7;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 8:
-				lastCombo = 8;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-			case 9:
-				lastCombo = 9;
-				animations.add(new ComboAnimation());
-				combo3Sound.play();
-				score += combo * 2;
-				break;
-		}
-	}
+		lastCombo = combo;
+		score += combo * 2;
+		animations.add(new ComboAnimation());
+		combo3Sound.play();
 
+	}
 
 	private void updateAndDrawFruit()
 	{
@@ -355,38 +313,58 @@ public class Game extends ApplicationAdapter {
 			timeCombo();
 			if (comboTimer > timeFrameForCombo - 1)
 			{
-				determineCombo();
+				if (combo >= 3)
+					determineCombo();
 				comboStarted = false;
 				comboTimer = 0;
 				combo = 0;
 			}
 		}
 
+		if (wave.isPumpkinTime())
+		{
+			Constants.GRAVITY = -0.002f;
+			wave.startPumpkinTimer();
+		}
+
 		for (Veggie f : wave.getVeggie()) {
 
 			f.update();
 
-			System.out.println(combo);
 
 			float distanceFromCursorToFruit = (float)Math.sqrt(Math.pow((f.getPos().x+f.getRadius()) - mousePos.x, 2) + Math.pow((f.getPos().y+f.getRadius()) - (720-mousePos.y), 2));
 
 			if (slicing && distanceFromCursorToFruit <= f.getRadius()+20 && !f.getType().equals("Sliced"))
 			{
-				wave.slice(f);
+				if (f.getType().equals("Pumpkin"))
+				{
+					//score++;
+					//sliceSound.play();
+					wave.setPumpkinTime(true);
 
-				if (f.isCritical()==1) {
-					animations.add(new CriticalAnimation());
-					criticalSound.play();
-					score += 10;
-				}
-				else {
-					sliceSound.play();
-					score++;
+				} else {
+					Constants.GRAVITY = -0.25f;
+					wave.slice(f);
+
+					if (f.isCritical()==1) {
+						animations.add(new CriticalAnimation());
+						criticalSound.play();
+						score += 10;
+					}
+					else {
+						sliceSound.play();
+						score++;
+					}
+
+					comboStarted = true;
+					comboTimer = 0;
+					combo++;
+
 				}
 
-				comboStarted = true;
-				comboTimer = 0;
-				combo++;
+
+
+
 
 			}
 
@@ -427,6 +405,18 @@ public class Game extends ApplicationAdapter {
 				potatoSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
 				potatoSprite.setPosition(f.getPos().x, f.getPos().y);
 				potatoSprite.draw(batch);
+			} else if (f.getType().equals("Pumpkin"))
+			{
+				// Pumpkin ___________________________
+				// cast shadow on wall
+				pumpkinSprite.setSize(f.getRadius() * 3, f.getRadius() * 3);
+				pumpkinSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
+				pumpkinSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
+				pumpkinSprite.draw(batch);
+
+				pumpkinSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
+				pumpkinSprite.setPosition(f.getPos().x, f.getPos().y);
+				pumpkinSprite.draw(batch);
 			}
 
 		}

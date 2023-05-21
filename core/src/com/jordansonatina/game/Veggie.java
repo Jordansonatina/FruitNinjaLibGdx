@@ -26,12 +26,20 @@ public class Veggie {
         leftSpawnBounds = 200;
         rightSpawnBounds = Constants.WIDTH - 200;
         radius = 50;
-        newPosition();
 
-        if (Math.random() < 0.05)
-            isCritical = 1;
-        else
+        if (!type.equals("Pumpkin")) {
+
+            newPosition();
+            if (Math.random() < 0.05)
+                isCritical = 1;
+            else
+                isCritical = 0;
+
+        } else {
+            velocity = new Vector2(0, 15);
+            position = new Vector2(Constants.WIDTH / 2 - radius, -radius);
             isCritical = 0;
+        }
 
     }
     private void newPosition()
@@ -56,6 +64,7 @@ public class Veggie {
 
     public Vector2 getPos() {return position;}
     public Vector2 getVel() {return velocity;}
+    public void setVel(Vector2 n) {velocity = n;}
     public int getRadius() {return radius;}
 
     public String getType() {return type;}
