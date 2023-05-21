@@ -45,6 +45,23 @@ public class Veggie {
     private void newPosition()
     {
         int velocityX = 0;
+
+        if (Wave.isFrenzyTime)
+        {
+            if (Math.random() < 0.5) {
+                position = new Vector2(-10, (int) (Math.random() * (Constants.HEIGHT/2-100)+100));
+                velocityX = 8;
+            }
+            else {
+                position = new Vector2(Constants.WIDTH + 10, (int) (Math.random() * (Constants.HEIGHT/2-100)+100));
+                velocityX = -8;
+            }
+
+            velocity = new Vector2(velocityX, (int)(Math.random() * (13-8)+8));
+
+            return;
+        }
+
         position = new Vector2((int)(Math.random() * (rightSpawnBounds - leftSpawnBounds)+leftSpawnBounds), -radius/2);
         // if veggie spawns to the right make velocity negative and vice versa so the veggies bundle in the middle
         if (position.x > Constants.WIDTH/2)
