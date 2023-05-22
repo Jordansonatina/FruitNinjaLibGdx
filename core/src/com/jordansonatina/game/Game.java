@@ -278,10 +278,10 @@ public class Game extends ApplicationAdapter {
 
 		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 			GAMESTATE = Constants.MENU;
-			timer.countDown();
+			//timer.countDown();
 			//timer.setFinished(false);
 			animations.clear();
-			resetGame();
+			//resetGame();
 		}
 
 
