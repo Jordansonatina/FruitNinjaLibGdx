@@ -16,6 +16,7 @@ public class Timer {
 
     public void countDown()
     {
+        finished = false;
         if (gameTime == -1) {
             finished = true;
             Game.timeUpSound.play();
@@ -31,6 +32,8 @@ public class Timer {
     }
 
     public int getGameTime() {return gameTime;}
+    public void setGameTime(int n) {gameTime = n;}
 
     public boolean isFinished() {return finished;}
+    public void setFinished(boolean n){finished = n;}
 }

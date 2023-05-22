@@ -3,18 +3,23 @@ package com.jordansonatina.game;
 import com.badlogic.gdx.math.Vector2;
 
 public class Blade {
-    private Vector2 position;
-    private Vector2 previousPosition;
+    private Vector2[] previousPosition;
+
+    private int length;
 
     public Blade()
     {
-        position = Vector2.Zero;
-        previousPosition = Vector2.Zero;
+        length = 500;
+        previousPosition = new Vector2[length];
     }
 
-    public void setPos(Vector2 n) {position = n;}
-    public Vector2 getPos() {return position;}
+    public Vector2 getPreviousPosition(int index) {return previousPosition[index];}
 
-    public void setPrevPos(Vector2 n) {previousPosition = n;}
-    public Vector2 getPrevPos() {return previousPosition;}
+    public Vector2[] getPreviousPositions() {return previousPosition;}
+
+    public void setPreviousPosition(Vector2 value, int index) {previousPosition[index] = value;}
+
+    public int getLength() {return length;}
+
+
 }

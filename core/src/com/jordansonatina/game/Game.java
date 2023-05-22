@@ -2,6 +2,7 @@ package com.jordansonatina.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -26,6 +27,15 @@ public class Game extends ApplicationAdapter {
 
 	Texture backgroundTex;
 	Sprite backgroundSprite;
+
+	Texture playButtonTex;
+	Sprite playButtonSprite;
+
+	Texture arcadePlayButtonTex;
+	Sprite arcadePlayButtonSprite;
+
+	Texture gamemodesScreenTex;
+	Sprite gamemodesScreenSprite;
 	Texture cabbageTex;
 	Sprite cabbageSprite;
 
@@ -54,6 +64,8 @@ public class Game extends ApplicationAdapter {
 
 	private boolean slicing;
 
+	private int checkerForSlicing = 0;
+
 	public static Sound throwSound;
 
 	public static Sound combo3Sound;
@@ -77,6 +89,8 @@ public class Game extends ApplicationAdapter {
 	private int lastCombo;
 	private boolean comboStarted;
 
+	private Vector2 previousMousePosition;
+
 	public static int score;
 	public static int highScore;
 
@@ -95,17 +109,29 @@ public class Game extends ApplicationAdapter {
 
 	private void loadTextures()
 	{
-		backgroundTex = new Texture(Gdx.files.internal(directory + "/background.jpeg"));
+		// UI TEXTURES
+		backgroundTex = new Texture(Gdx.files.internal(directory + "/ui/background.png"));
 		backgroundSprite = new Sprite(backgroundTex);
+
+		menuTex = new Texture(Gdx.files.internal(directory + "/ui/menuscreen.png"));
+		menuSprite = new Sprite(menuTex);
+
+		playButtonTex = new Texture(Gdx.files.internal(directory + "/ui/playbutton.png"));
+		playButtonSprite = new Sprite(playButtonTex);
+
+		arcadePlayButtonTex = new Texture(Gdx.files.internal(directory + "/ui/arcadePlayButton.png"));
+		arcadePlayButtonSprite = new Sprite(arcadePlayButtonTex);
+
+		gamemodesScreenTex = new Texture(Gdx.files.internal(directory + "/ui/gamemodes.png"));
+		gamemodesScreenSprite = new Sprite(gamemodesScreenTex);
+
+		// ----------------------
 
 		cabbageTex = new Texture(Gdx.files.internal(directory + "/veggies/cabbage.png"));
 		cabbageSprite = new Sprite(cabbageTex);
 
 		bellPepperTex = new Texture(Gdx.files.internal(directory + "/veggies/bellpepper.png"));
 		bellPepperSprite = new Sprite(bellPepperTex);
-
-		menuTex = new Texture(Gdx.files.internal(directory + "/MenuScreen.jpg"));
-		menuSprite = new Sprite(menuTex);
 
 		potatoTex = new Texture(Gdx.files.internal(directory + "/veggies/potato.png"));
 		potatoSprite = new Sprite(potatoTex);
@@ -172,6 +198,10 @@ public class Game extends ApplicationAdapter {
 
 		score = 0;
 
+		checkerForSlicing = 0;
+
+		previousMousePosition = Vector2.Zero;
+
 		try {
 			File myObj = new File("highscore.txt");
 			Scanner myReader = new Scanner(myObj);
@@ -205,9 +235,14 @@ public class Game extends ApplicationAdapter {
 
 		GAMESTATE = Constants.MENU;
 
+
 		loadTextures();
 		loadSounds();
 		createSaveFile();
+
+		arcadePlayButtonSprite.setPosition(Constants.WIDTH/2-400, 190);
+		playButtonSprite.setPosition(Constants.WIDTH/2-120, 190);
+
 
 
 	}
@@ -218,11 +253,21 @@ public class Game extends ApplicationAdapter {
 
 		mousePos = new Vector2(Gdx.input.getX(), Gdx.input.getY());
 
+		checkerForSlicing++;
+		if (checkerForSlicing >= 2)
+		{
+			checkerForSlicing = 0;
+			previousMousePosition = mousePos;
+		}
+
+		System.out.println(slicing);
+
+
 		// write the highscore to savefile as needed
 		if (score > highScore) {
 			try {
 				FileWriter myWriter = new FileWriter("highscore.txt");
-				myWriter.write(String.valueOf(highScore));
+				myWriter.write(String.valueOf(score));
 				myWriter.close();
 				//System.out.println("Successfully wrote to the file.");
 			} catch (IOException e) {
@@ -231,10 +276,18 @@ public class Game extends ApplicationAdapter {
 			}
 		}
 
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			GAMESTATE = Constants.MENU;
+			timer.countDown();
+			//timer.setFinished(false);
+			animations.clear();
+			resetGame();
+		}
+
 
 		slicing = Gdx.input.isButtonPressed(0);
 
-		if (GAMESTATE == Constants.PLAYING) {
+		if (GAMESTATE == Constants.PLAYINGARCADE) {
 			timer.countDown();
 
 			if (score > highScore)
@@ -261,10 +314,11 @@ public class Game extends ApplicationAdapter {
 			cabbageSprite.setPosition(0, Constants.HEIGHT-100);
 			cabbageSprite.draw(batch);
 			font.setColor(new Color(0.9f, 0.9f, 0.3f, 1f));
-			font.draw(batch, String.valueOf(score), 100, Constants.HEIGHT-10);
-			font.getData().setScale(0.5f);
+			font.draw(batch, String.valueOf(score), 120, Constants.HEIGHT-10);
+			parameter.size = 2;
+			//font.getData().setScale(0.5f);
 			font.setColor(new Color(0f, 0.9f, 0f, 1f));
-			font.draw(batch, "BEST: " + highScore, 5, Constants.HEIGHT-100);
+			font.draw(batch, "Best: " + highScore, 5, Constants.HEIGHT-100);
 
 			// combo animations
 			for (int i = 0; i < animations.size(); i++)
@@ -307,22 +361,50 @@ public class Game extends ApplicationAdapter {
 
 		} else if (GAMESTATE == Constants.MENU)
 		{
-			boolean hovering = mousePos.x >= 807 && mousePos.x <= 1046 && mousePos.y >= 272 && mousePos.y <= 348;
-			// check to see if player hits "play"
+			float deltaX = mousePos.x - (playButtonSprite.getX()+playButtonSprite.getWidth()/2);
+			float deltaY = (720-mousePos.y) - (playButtonSprite.getY() + playButtonSprite.getHeight()/2);
+			float distance = (float)Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
 
-			if (hovering && Gdx.input.justTouched())
-				GAMESTATE = Constants.PLAYING;
-
+			// check to see if player hits "play game"
+			if (slicing && distance <= playButtonSprite.getWidth()/2) {
+				sliceSound.play();
+				GAMESTATE = Constants.GAMEMODES;
+			}
 
 			batch.begin();
 			menuSprite.draw(batch);
+			playButtonSprite.draw(batch);
+			batch.end();
+		} else if (GAMESTATE == Constants.GAMEMODES)
+		{
+			// mouse distance from arcade button
+			float deltaXArcade = mousePos.x - (arcadePlayButtonSprite.getX()+arcadePlayButtonSprite.getWidth()/2);
+			float deltaYArcade = (720-mousePos.y) - (arcadePlayButtonSprite.getY() + arcadePlayButtonSprite.getHeight()/2);
+			float distanceArcade = (float)Math.sqrt(Math.pow(deltaXArcade, 2) + Math.pow(deltaYArcade, 2));
+
+			// check to see if player hits "arcade mode"
+			if (slicing && distanceArcade <= arcadePlayButtonSprite.getWidth()/2) {
+				sliceSound.play();
+				GAMESTATE = Constants.PLAYINGARCADE;
+			}
+
+			batch.begin();
+			gamemodesScreenSprite.draw(batch);
+			arcadePlayButtonSprite.draw(batch);
 			batch.end();
 		}
 
 		renderer.begin(ShapeRenderer.ShapeType.Filled);
 		renderer.setColor(Color.WHITE);
-		updateBladePositionAndDraw();
+		//updateBladePositionAndDraw();
 		renderer.end();
+	}
+
+	private void resetGame()
+	{
+		timer.setGameTime(60);
+		score = 0;
+		wave.resetWave();
 	}
 	private void waveTimer()
 	{
@@ -345,10 +427,18 @@ public class Game extends ApplicationAdapter {
 
 	private void updateBladePositionAndDraw()
 	{
-			blade.setPrevPos(new Vector2(mousePos.x, Constants.HEIGHT - mousePos.y));
-		blade.setPos(new Vector2(mousePos.x, Constants.HEIGHT - mousePos.y));
+		for (int i = 0; i < blade.getLength()-1; i++)
+		{
+			blade.setPreviousPosition(blade.getPreviousPosition(i), i+1);
+		}
+		blade.setPreviousPosition(new Vector2(previousMousePosition.x, 720-previousMousePosition.y), blade.getLength()-1);
 
-		renderer.rectLine(blade.getPrevPos(), blade.getPos(), 10);
+		for (Vector2 v : blade.getPreviousPositions())
+		{
+			if (v != null)
+				renderer.circle(v.x, v.y, 10);
+		}
+
 	}
 
 	private void drawTimer()
@@ -430,7 +520,7 @@ public class Game extends ApplicationAdapter {
 				wave.slice(f);
 			}
 
-			float distanceY = ((float) Constants.HEIGHT /2 - f.getPos().y)/((float) Constants.HEIGHT /2);
+			float distanceY = 0;//((float) Constants.HEIGHT /2 - f.getPos().y)/((float) Constants.HEIGHT /2);
 
 			if (f.getType().equals("Cabbage")) {
 				// CABBAGES ___________________________
@@ -447,7 +537,7 @@ public class Game extends ApplicationAdapter {
 			} else if (f.getType().equals("BellPepper")) {
 				// CABBAGES ___________________________
 				// cast shadow on wall
-				bellPepperSprite.setSize(f.getRadius() * 2f, f.getRadius() * 2f);
+				bellPepperSprite.setSize(f.getRadius() * 3f, f.getRadius() * 3f);
 				bellPepperSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
 				bellPepperSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
 				bellPepperSprite.draw(batch);
@@ -459,7 +549,7 @@ public class Game extends ApplicationAdapter {
 			{
 				// Potato ___________________________
 				// cast shadow on wall
-				potatoSprite.setSize(f.getRadius() * 1.8f, f.getRadius() * 1.8f);
+				potatoSprite.setSize(f.getRadius() * 2.5f, f.getRadius() * 2.5f);
 				potatoSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
 				potatoSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
 				potatoSprite.draw(batch);
@@ -470,7 +560,7 @@ public class Game extends ApplicationAdapter {
 			} else if (f.getType().equals("Artichoke")) {
 				// Artichoke ___________________________
 				// cast shadow on wall
-				artichokeSprite.setSize(f.getRadius() * 2, f.getRadius() * 2);
+				artichokeSprite.setSize(f.getRadius() * 3.5f, f.getRadius() * 3.5f);
 				artichokeSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
 				artichokeSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
 				artichokeSprite.draw(batch);
