@@ -16,7 +16,6 @@ public class Timer {
 
     public void countDown()
     {
-        finished = false;
         if (gameTime == -1) {
             finished = true;
             Game.timeUpSound.play();
