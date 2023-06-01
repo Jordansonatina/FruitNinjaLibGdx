@@ -7,10 +7,13 @@ public class Animation {
     private int animationTimer = 0;
     private int animationLasts = 60;
 
+    public Vector2 position;
+
 
     public boolean done;
-    public Animation()
+    public Animation(Vector2 position)
     {
+        this.position = position;
         done = false;
     }
 
@@ -23,4 +26,5 @@ public class Animation {
         if (animationTimer > animationLasts)
             done = true;
     }
+
 }

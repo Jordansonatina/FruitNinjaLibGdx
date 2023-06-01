@@ -32,13 +32,20 @@ public class Wave {
     private int theThrows;
 
     public static boolean isFrenzyTime;
-    private boolean isFrenzyWave;
 
     private boolean isFrenzyEggplantThrown;
     private float chanceOfFrenzyPerWave;
 
     private int frenzyDuration;
     private int frenzyTimer;
+
+    public static boolean isFrozenTime;
+
+    private boolean isFrozenEggplantThrown;
+    private float chanceOfFrozenPerWave;
+
+    private int frozenDuration;
+    private int frozenTimer;
 
 
     private int slices;
@@ -51,8 +58,15 @@ public class Wave {
 
         isFrenzyEggplantThrown = false;
         isFrenzyTime = false;
-        chanceOfFrenzyPerWave = 0.01f;
+        chanceOfFrenzyPerWave = 0.5f;
         frenzyDuration = 60*6;
+        frenzyTimer = 0;
+
+        isFrozenEggplantThrown = false;
+        isFrozenTime = false;
+        chanceOfFrozenPerWave = 0.5f;
+        frozenDuration = 60*6;
+        frozenTimer = 0;
 
 
         pumpkinMaxTime = 100;
@@ -81,6 +95,9 @@ public class Wave {
     public void setIsFrenzyTime(boolean n) {isFrenzyTime= n;}
     public boolean isFrenzyTime() {return isFrenzyTime;}
 
+    public void setIsFrozenTime(boolean n) {isFrozenTime= n;}
+    public boolean isFrozenTime() {return isFrozenTime;}
+
 
 
     public void startPumpkinTimer()
@@ -108,6 +125,15 @@ public class Wave {
         }
     }
 
+    public void startFrozenTimer()
+    {
+        frozenTimer++;
+        if (frozenTimer >= frozenDuration) {
+            frozenTimer = 0;
+            isFrozenTime = false;
+        }
+    }
+
     private void freezePumpkin()
     {
         veggies.get(0).setVel(Vector2.Zero);
@@ -124,40 +150,60 @@ public class Wave {
         {
             removeVeggies();
             isFrenzyTime = false;
+            isFrozenTime = false;
             pumpkinOut = true;
             veggies.add(new Veggie("Pumpkin"));
+        }
+
+        if (isFrozenTime)
+        {
+            for (Veggie v : veggies)
+            {
+                if (v.getVel().y>5)
+                    v.setVel(new Vector2(v.getVel().x/2, v.getVel().y/4));
+            }
+            Constants.GRAVITY = -0.01f;
+            Game.timer.setStopped(true);
+        } else {
+            Constants.GRAVITY = -0.25f;
+            Game.timer.setStopped(false);
         }
 
         if (isFrenzyTime)
         {
             timeBetweenThrow = 5; // veggies are going to be coming a lot faster
-
             if (tick == timeBetweenThrow-1) {
                 int randomType = (int) (Math.random() * types.length);
                 veggies.add(new Veggie(types[randomType]));
             }
 
-            return;
+            return; // return so that the normal waves don't occur
         }
 
         if (theThrows >= size) {
+
             finished = true;
         }
 
-
-
         // actually throwing the fruit
-        if (!isFrenzyTime && !finished && tick == timeBetweenThrow-1)
+        if (!finished && tick == timeBetweenThrow-1)
         {
             theThrows++;
             Game.throwSound.play();
 
             // throw either a normal fruit or a special fruit
+            // frenzy eggplant cannot be thrown if a frenzy eggplant was already thrown in the wave
+            // || if it currently is frenzy time
+
             if (Math.random() < chanceOfFrenzyPerWave && !isFrenzyEggplantThrown && !isFrenzyTime) {
                 veggies.add(new Veggie("FrenzyEggplant"));
                 isFrenzyEggplantThrown = true;
-            }
+            } else if (Math.random() < chanceOfFrozenPerWave && !isFrozenEggplantThrown && !isFrozenTime) {
+                veggies.add(new Veggie("FrozenEggplant"));
+                isFrozenEggplantThrown = true;
+             }
             else {
+                // throwing random normal veggies
                 int randomType = (int)(Math.random() * types.length);
                 veggies.add(new Veggie(types[randomType]));
             }
@@ -165,6 +211,19 @@ public class Wave {
         }
 
 
+    }
+
+    public boolean allVeggiesFallen()
+    {
+        boolean bool = true;
+        for (Veggie v : veggies)
+        {
+            if (v.getPos().y > -10) {
+                bool = false;
+                break;
+            }
+        }
+        return bool;
     }
 
     public void slice(Veggie v)
@@ -191,6 +250,6 @@ public class Wave {
         slices = 0;
         size = (int)(Math.random() * (maxSize+1-minSize)+minSize);
         isFrenzyEggplantThrown = false;
-
+        isFrozenEggplantThrown = false;
     }
 }

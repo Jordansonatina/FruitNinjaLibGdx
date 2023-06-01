@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -54,6 +55,12 @@ public class Game extends ApplicationAdapter {
 	Texture frenzyEggplantTex;
 	Sprite frenzyEggplantSprite;
 
+	Texture frozenEggplantTex;
+	Sprite frozenEggplantSprite;
+
+	Texture iceCubeTex;
+	Sprite iceCubeSprite;
+
 	Texture pumpkinTex;
 	Sprite pumpkinSprite;
 
@@ -74,6 +81,8 @@ public class Game extends ApplicationAdapter {
 	public static Sound sliceSound;
 
 	public static Sound frenzySound;
+
+	public static Sound frozenSound;
 	public static Sound timeUpSound;
 
 
@@ -85,6 +94,8 @@ public class Game extends ApplicationAdapter {
 	private int timeFrameForCombo;
 	private int comboTimer;
 	private int combo;
+
+	private Vector2 lastPosOfVeggie;
 
 	private int lastCombo;
 	private boolean comboStarted;
@@ -145,6 +156,14 @@ public class Game extends ApplicationAdapter {
 		frenzyEggplantTex = new Texture(Gdx.files.internal(directory + "/veggies/frenzyeggplant.png"));
 		frenzyEggplantSprite = new Sprite(frenzyEggplantTex);
 
+		frozenEggplantTex = new Texture(Gdx.files.internal(directory + "/veggies/frozeneggplant.png"));
+		frozenEggplantSprite = new Sprite(frozenEggplantTex);
+
+		iceCubeTex = new Texture(Gdx.files.internal(directory + "/veggies/frozen.png"));
+		iceCubeSprite = new Sprite(iceCubeTex);
+
+
+
 		pumpkinTex = new Texture(Gdx.files.internal(directory + "/veggies/pumpkin.png"));
 		pumpkinSprite = new Sprite(pumpkinTex);
 	}
@@ -157,6 +176,8 @@ public class Game extends ApplicationAdapter {
 		sliceSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Clean-Slice-1.wav"));
 		timeUpSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/time-up.wav"));
 		frenzySound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Bonus-Banana-Frenzy.wav"));
+		frozenSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Bonus-Banana-Freeze.wav"));
+
 	}
 
 	private void createSaveFile()
@@ -250,6 +271,9 @@ public class Game extends ApplicationAdapter {
 	@Override
 	public void render () {
 		ScreenUtils.clear(0, 0, 0, 1);
+		batch.enableBlending();
+		Gdx.gl.glEnable(Gdx.gl30.GL_BLEND);
+		//batch.setBlendFunction(GL30.GL_ONE, GL30.GL_ONE_MINUS_SRC_ALPHA);
 
 		mousePos = new Vector2(Gdx.input.getX(), Gdx.input.getY());
 
@@ -260,7 +284,6 @@ public class Game extends ApplicationAdapter {
 			previousMousePosition = mousePos;
 		}
 
-		System.out.println(slicing);
 
 
 		// write the highscore to savefile as needed
@@ -278,10 +301,7 @@ public class Game extends ApplicationAdapter {
 
 		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 			GAMESTATE = Constants.MENU;
-			//timer.countDown();
-			//timer.setFinished(false);
-			animations.clear();
-			//resetGame();
+			resetGame();
 		}
 
 
@@ -294,7 +314,7 @@ public class Game extends ApplicationAdapter {
 				highScore = score;
 
 										// game timer
-			if (wave.isFinished() && !timer.isFinished()) {
+			if (wave.isFinished() && !timer.isFinished() && wave.allVeggiesFallen()) {
 				waveTimer(); // count down for next wave
 				if (timeForNextWave()) {
 					wave.resetWave();
@@ -315,10 +335,15 @@ public class Game extends ApplicationAdapter {
 			cabbageSprite.draw(batch);
 			font.setColor(new Color(0.9f, 0.9f, 0.3f, 1f));
 			font.draw(batch, String.valueOf(score), 120, Constants.HEIGHT-10);
-			parameter.size = 2;
-			//font.getData().setScale(0.5f);
 			font.setColor(new Color(0f, 0.9f, 0f, 1f));
 			font.draw(batch, "Best: " + highScore, 5, Constants.HEIGHT-100);
+
+			// UI for power up eggplants
+			if (wave.isFrenzyTime())
+			{
+				font.setColor(new Color(0.9f, 0.5f, 0f, 1f));
+				font.draw(batch, "FRENZY!!!", Constants.WIDTH/2-150, Constants.HEIGHT-10);
+			}
 
 			// combo animations
 			for (int i = 0; i < animations.size(); i++)
@@ -334,15 +359,14 @@ public class Game extends ApplicationAdapter {
 						// font gets redder the higher the combo was
 						font.setColor(new Color(1f, 1f - (float)(lastCombo-3)/5, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
 
-						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
-						font.draw(batch, lastCombo + " veggie combo", Constants.WIDTH/2, Constants.HEIGHT/2);
-
+						font.getData().setScale((temp.getAnimationTimer())/(float)temp.getAnimationLasts());
+						font.draw(batch, lastCombo + " veggie combo", temp.position.x, temp.position.y);
 					} else if (temp instanceof CriticalAnimation)
 					{
 						temp.time();
 						font.setColor(new Color(0f, 1f, 1f, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
 						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
-						font.draw(batch, "critical \n   +10", Constants.WIDTH/2, Constants.HEIGHT/2);
+						font.draw(batch, "critical \n   +10", temp.position.x, temp.position.y);
 					}
 
 				} else {
@@ -356,6 +380,21 @@ public class Game extends ApplicationAdapter {
 			font.setColor(Color.WHITE);
 			// draw the game time counting down
 			drawTimer();
+
+			// ui for frozen timer
+			if (wave.isFrozenTime())
+			{
+				iceCubeSprite.setColor(new Color(1f, 1f, 1f, 0.8f));
+				iceCubeSprite.setPosition(Constants.WIDTH-120, Constants.HEIGHT-120);
+				iceCubeSprite.setSize(140, 140);
+				iceCubeSprite.draw(batch);
+
+				iceCubeSprite.setColor(new Color(1f, 1f, 1f, 0.5f));
+				iceCubeSprite.setPosition(-800, -800);
+				iceCubeSprite.setSize(3000, 3000);
+				iceCubeSprite.draw(batch);
+
+			}
 
 			batch.end();
 
@@ -405,6 +444,9 @@ public class Game extends ApplicationAdapter {
 		timer.setGameTime(60);
 		score = 0;
 		wave.resetWave();
+		timer.countDown();
+		timer.setFinished(false);
+		animations.clear();
 	}
 	private void waveTimer()
 	{
@@ -450,7 +492,7 @@ public class Game extends ApplicationAdapter {
 	{
 		lastCombo = combo;
 		score += combo * 2;
-		animations.add(new ComboAnimation());
+		animations.add(new ComboAnimation(lastPosOfVeggie));
 		combo3Sound.play();
 
 	}
@@ -470,41 +512,53 @@ public class Game extends ApplicationAdapter {
 			}
 		}
 
+		/*
 		if (wave.isPumpkinTime())
 		{
 			Constants.GRAVITY = -0.002f;
 			wave.startPumpkinTimer();
 		}
+		*/
+
 
 		if (wave.isFrenzyTime())
 		{
 			wave.startFrenzyTimer();
+		}
+		if (wave.isFrozenTime())
+		{
+			wave.startFrozenTimer();
 		}
 
 		for (Veggie f : wave.getVeggie()) {
 
 			f.update();
 
-
 			float distanceFromCursorToFruit = (float)Math.sqrt(Math.pow((f.getPos().x+f.getRadius()) - mousePos.x, 2) + Math.pow((f.getPos().y+f.getRadius()) - (720-mousePos.y), 2));
 
 			if (slicing && distanceFromCursorToFruit <= f.getRadius()+20 && !f.getType().equals("Sliced"))
 			{
+				lastPosOfVeggie = new Vector2(f.getPos().x, f.getPos().y); // store this to know where the combo animation
+				// should render
 				if (f.getType().equals("Pumpkin"))
 				{
 					score+=30;
-
-					//wave.setPumpkinTime(true);
 
 				} else if (f.getType().equals("FrenzyEggplant"))
 				{
 					wave.setIsFrenzyTime(true);
 					frenzySound.play();
+				} else if (f.getType().equals("FrozenEggplant"))
+				{
+					wave.setIsFrozenTime(true);
+					frozenSound.play();
 				}else {
-					Constants.GRAVITY = -0.25f;
+					Constants.GRAVITY = -0.25f; // don't mind me changing a constant
 
+					// if the current veggie is a critical fruit then we add 10 points
+					// otherwise just add the normal 1 point
 					if (f.isCritical()==1) {
-						animations.add(new CriticalAnimation());
+						animations.add(new CriticalAnimation(lastPosOfVeggie));
 						criticalSound.play();
 						score += 10;
 					}
@@ -522,6 +576,7 @@ public class Game extends ApplicationAdapter {
 
 			float distanceY = 0;//((float) Constants.HEIGHT /2 - f.getPos().y)/((float) Constants.HEIGHT /2);
 
+			// Ignore this horrendous if chain
 			if (f.getType().equals("Cabbage")) {
 				// CABBAGES ___________________________
 				// cast shadow on wall
@@ -590,11 +645,22 @@ public class Game extends ApplicationAdapter {
 				frenzyEggplantSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
 				frenzyEggplantSprite.setPosition(f.getPos().x, f.getPos().y);
 				frenzyEggplantSprite.draw(batch);
+			} else if (f.getType().equals("FrozenEggplant")) {
+				// Eggplant ___________________________
+				// cast shadow on wall
+				frozenEggplantSprite.setSize(f.getRadius() * 3, f.getRadius() * 3);
+				frozenEggplantSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
+				frozenEggplantSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
+				frozenEggplantSprite.draw(batch);
+
+				frozenEggplantSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
+				frozenEggplantSprite.setPosition(f.getPos().x, f.getPos().y);
+				frozenEggplantSprite.draw(batch);
 			} else if (f.getType().equals("Pumpkin"))
 			{
 				// Pumpkin ___________________________
 				// cast shadow on wall
-				pumpkinSprite.setSize(f.getRadius() * 3, f.getRadius() * 3);
+				pumpkinSprite.setSize(f.getRadius() * 4, f.getRadius() * 4);
 				pumpkinSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
 				pumpkinSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
 				pumpkinSprite.draw(batch);

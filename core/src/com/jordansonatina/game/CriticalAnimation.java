@@ -1,12 +1,17 @@
 package com.jordansonatina.game;
 
+import com.badlogic.gdx.math.Vector2;
+
 public class CriticalAnimation extends Animation{
     private int animationTimer = 0;
-    private int animationLasts = 30;
+    private int animationLasts = 60;
+
+    public Vector2 position;
 
     public boolean done;
-    public CriticalAnimation()
+    public CriticalAnimation(Vector2 position)
     {
+        super(position);
         done = false;
     }
 
@@ -19,6 +24,8 @@ public class CriticalAnimation extends Animation{
         if (animationTimer > animationLasts)
             done = true;
     }
+
+
 
 
 
