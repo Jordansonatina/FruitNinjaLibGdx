@@ -29,7 +29,7 @@ public class Timer {
 
             tick++;
 
-            if (tick == 60 && !finished) {
+            if (tick >= 60 && !finished) {
                 gameTime--;
                 tick = 0;
             }

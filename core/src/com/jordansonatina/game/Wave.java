@@ -44,6 +44,8 @@ public class Wave {
     private boolean isFrozenEggplantThrown;
     private float chanceOfFrozenPerWave;
 
+    private float chanceOfBomb;
+
     private int frozenDuration;
     private int frozenTimer;
 
@@ -58,15 +60,17 @@ public class Wave {
 
         isFrenzyEggplantThrown = false;
         isFrenzyTime = false;
-        chanceOfFrenzyPerWave = 0.5f;
+        chanceOfFrenzyPerWave = 0.02f;
         frenzyDuration = 60*6;
         frenzyTimer = 0;
 
         isFrozenEggplantThrown = false;
         isFrozenTime = false;
-        chanceOfFrozenPerWave = 0.5f;
+        chanceOfFrozenPerWave = 0.02f;
         frozenDuration = 60*6;
         frozenTimer = 0;
+
+        chanceOfBomb = 0.1f;
 
 
         pumpkinMaxTime = 100;
@@ -81,6 +85,9 @@ public class Wave {
 
         maxSize = 15;
         minSize = 4;
+
+        //maxSize = 50;
+        //minSize = 10;
 
         pumpkinOut = false;
 
@@ -146,9 +153,8 @@ public class Wave {
             tick = 0;
 
         // throw pumpkin at the very end of the game
-        if (Game.timer.isFinished() && !pumpkinOut && finished)
+        if (Game.timer.isFinished() && !pumpkinOut && finished && allVeggiesFallen())
         {
-            removeVeggies();
             isFrenzyTime = false;
             isFrozenTime = false;
             pumpkinOut = true;
@@ -189,23 +195,31 @@ public class Wave {
         if (!finished && tick == timeBetweenThrow-1)
         {
             theThrows++;
-            Game.throwSound.play();
+
 
             // throw either a normal fruit or a special fruit
             // frenzy eggplant cannot be thrown if a frenzy eggplant was already thrown in the wave
-            // || if it currently is frenzy time
-
+            // OR if it currently is frenzy time
+            // also throw a bomb
             if (Math.random() < chanceOfFrenzyPerWave && !isFrenzyEggplantThrown && !isFrenzyTime) {
                 veggies.add(new Veggie("FrenzyEggplant"));
                 isFrenzyEggplantThrown = true;
+                Game.throwSound.play();
             } else if (Math.random() < chanceOfFrozenPerWave && !isFrozenEggplantThrown && !isFrozenTime) {
                 veggies.add(new Veggie("FrozenEggplant"));
                 isFrozenEggplantThrown = true;
-             }
+                Game.throwSound.play();
+            } else if (Math.random() < chanceOfBomb && !isFrenzyTime) {
+                veggies.add(new Veggie("Bomb"));
+                isFrozenEggplantThrown = true;
+                Game.bombThrowUpSound.play();
+            }
             else {
                 // throwing random normal veggies
                 int randomType = (int)(Math.random() * types.length);
                 veggies.add(new Veggie(types[randomType]));
+                Game.throwSound.play();
+
             }
             timeBetweenThrow = (int)(Math.random() * ((maxThrowTime+1) - minThrowTime) + minThrowTime);
         }
@@ -218,13 +232,15 @@ public class Wave {
         boolean bool = true;
         for (Veggie v : veggies)
         {
-            if (v.getPos().y > -10) {
+            if (!v.getType().equals("Bomb") && !v.getType().equals("Sliced") && v.getPos().y > -10) {
                 bool = false;
                 break;
             }
         }
         return bool;
     }
+
+    public void setPumpkinOut(boolean n) {pumpkinOut = n;}
 
     public void slice(Veggie v)
     {

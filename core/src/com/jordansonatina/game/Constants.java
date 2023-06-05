@@ -9,5 +9,5 @@ public class Constants {
     public static final int MENU = 0;
     public static final int GAMEMODES = 1;
     public static final int PLAYINGARCADE = 2;
-    public static final int PLAYINGCLASSIC = 3;
+    public static final int INSTRUCTIONS = 3;
 }

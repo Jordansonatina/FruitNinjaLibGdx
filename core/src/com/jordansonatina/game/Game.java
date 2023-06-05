@@ -3,6 +3,7 @@ package com.jordansonatina.game;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL30;
@@ -35,6 +36,9 @@ public class Game extends ApplicationAdapter {
 	Texture arcadePlayButtonTex;
 	Sprite arcadePlayButtonSprite;
 
+	Texture instructionsButtonTex;
+	Sprite instructionsButtonSprite;
+
 	Texture gamemodesScreenTex;
 	Sprite gamemodesScreenSprite;
 	Texture cabbageTex;
@@ -61,8 +65,14 @@ public class Game extends ApplicationAdapter {
 	Texture iceCubeTex;
 	Sprite iceCubeSprite;
 
+	Texture greenSplatterTex;
+	Sprite greenSplatterSprite;
+
 	Texture pumpkinTex;
 	Sprite pumpkinSprite;
+
+	Texture bombTex;
+	Sprite bombSprite;
 
 	Texture menuTex;
 	Sprite menuSprite;
@@ -84,6 +94,11 @@ public class Game extends ApplicationAdapter {
 
 	public static Sound frozenSound;
 	public static Sound timeUpSound;
+	public static Sound bombThrowUpSound;
+
+	public static Music menuMusic;
+	public static Music instructionsMusic;
+	public static Music playingMusic;
 
 
 	public String directory;
@@ -133,6 +148,9 @@ public class Game extends ApplicationAdapter {
 		arcadePlayButtonTex = new Texture(Gdx.files.internal(directory + "/ui/arcadePlayButton.png"));
 		arcadePlayButtonSprite = new Sprite(arcadePlayButtonTex);
 
+		instructionsButtonTex = new Texture(Gdx.files.internal(directory + "/ui/instructionsButton.png"));
+		instructionsButtonSprite = new Sprite(instructionsButtonTex);
+
 		gamemodesScreenTex = new Texture(Gdx.files.internal(directory + "/ui/gamemodes.png"));
 		gamemodesScreenSprite = new Sprite(gamemodesScreenTex);
 
@@ -162,6 +180,12 @@ public class Game extends ApplicationAdapter {
 		iceCubeTex = new Texture(Gdx.files.internal(directory + "/veggies/frozen.png"));
 		iceCubeSprite = new Sprite(iceCubeTex);
 
+		greenSplatterTex = new Texture(Gdx.files.internal(directory + "/veggies/greensplatter.png"));
+		greenSplatterSprite = new Sprite(greenSplatterTex);
+
+		bombTex = new Texture(Gdx.files.internal(directory + "/veggies/bomb.png"));
+		bombSprite = new Sprite(bombTex);
+
 
 
 		pumpkinTex = new Texture(Gdx.files.internal(directory + "/veggies/pumpkin.png"));
@@ -177,6 +201,14 @@ public class Game extends ApplicationAdapter {
 		timeUpSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/time-up.wav"));
 		frenzySound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Bonus-Banana-Frenzy.wav"));
 		frozenSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Bonus-Banana-Freeze.wav"));
+		bombThrowUpSound = Gdx.audio.newSound(Gdx.files.internal(directory+"/sounds/Throw-bomb.wav"));
+
+
+		menuMusic = Gdx.audio.newMusic(Gdx.files.internal(directory+"/sounds/menuMusic.wav"));
+		instructionsMusic = Gdx.audio.newMusic(Gdx.files.internal(directory+"/sounds/instructionsMusic.wav"));
+		playingMusic = Gdx.audio.newMusic(Gdx.files.internal(directory+"/sounds/playingMusic.mp3"));
+
+
 
 	}
 
@@ -208,8 +240,7 @@ public class Game extends ApplicationAdapter {
 
 		timer = new Timer(60);
 
-
-		timeBetweenWaves = 200;
+		timeBetweenWaves = 60;
 
 		timeFrameForCombo = 10;
 
@@ -251,21 +282,16 @@ public class Game extends ApplicationAdapter {
 
 		font = generator.generateFont(parameter); // font size 12 pixels
 
-
-
-
 		GAMESTATE = Constants.MENU;
-
 
 		loadTextures();
 		loadSounds();
 		createSaveFile();
 
+
 		arcadePlayButtonSprite.setPosition(Constants.WIDTH/2-400, 190);
 		playButtonSprite.setPosition(Constants.WIDTH/2-120, 190);
-
-
-
+		instructionsButtonSprite.setPosition(Constants.WIDTH/2+240, 130);
 	}
 
 	@Override
@@ -273,7 +299,6 @@ public class Game extends ApplicationAdapter {
 		ScreenUtils.clear(0, 0, 0, 1);
 		batch.enableBlending();
 		Gdx.gl.glEnable(Gdx.gl30.GL_BLEND);
-		//batch.setBlendFunction(GL30.GL_ONE, GL30.GL_ONE_MINUS_SRC_ALPHA);
 
 		mousePos = new Vector2(Gdx.input.getX(), Gdx.input.getY());
 
@@ -305,15 +330,23 @@ public class Game extends ApplicationAdapter {
 		}
 
 
+
+
 		slicing = Gdx.input.isButtonPressed(0);
 
 		if (GAMESTATE == Constants.PLAYINGARCADE) {
 			timer.countDown();
 
+			if (!playingMusic.isPlaying()) {
+				menuMusic.stop();
+				instructionsMusic.stop();
+				playingMusic.play();
+			}
+
 			if (score > highScore)
 				highScore = score;
 
-										// game timer
+			// if it is frozen time ignore the wave timer		// game timer
 			if (wave.isFinished() && !timer.isFinished() && wave.allVeggiesFallen()) {
 				waveTimer(); // count down for next wave
 				if (timeForNextWave()) {
@@ -322,10 +355,61 @@ public class Game extends ApplicationAdapter {
 			} else {
 				wave.throwFruit();
 			}
+
+
+
+
 			// draw fruit background and score
 			batch.begin();
 			backgroundSprite.draw(batch);
+
+			// animations
+			for (int i = 0; i < animations.size(); i++)
+			{
+				Animation temp = animations.get(i);
+				int yMovement = 0;
+				if (!temp.isDone())
+				{
+					temp.time();
+					if (temp instanceof ComboAnimation)
+					{
+
+						// font gets redder the higher the combo was
+						font.setColor(new Color(1f, 1f - (float)(lastCombo-3)/5, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+
+						font.getData().setScale((temp.getAnimationTimer())/(float)temp.getAnimationLasts());
+						font.draw(batch, lastCombo + " veggie combo", temp.position.x, temp.position.y);
+					} else if (temp instanceof CriticalAnimation)
+					{
+						font.setColor(new Color(0f, 1f, 1f, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
+						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
+						font.draw(batch, "critical \n   +10", temp.position.x, temp.position.y);
+					} else if (temp instanceof SplatterAnimation)
+					{
+						if (temp.getAnimationTimer() > 100)
+						{
+							greenSplatterSprite.setColor(1f, 1f, 1f, 0.4f-(temp.getAnimationTimer()/600f));
+
+							greenSplatterSprite.setPosition(temp.position.x, temp.position.y-(temp.getAnimationTimer()-100));
+						} else {
+							greenSplatterSprite.setColor(1f, 1f, 1f, 0.4f);
+
+							greenSplatterSprite.setPosition(temp.position.x, temp.position.y);
+						}
+						greenSplatterSprite.setSize(200, 200);
+						greenSplatterSprite.draw(batch);
+					}
+
+				} else {
+					animations.remove(i);
+					i--;
+				}
+			}
+
 			updateAndDrawFruit();
+
+			font.getData().setScale(1f);
+			font.setColor(Color.WHITE);
 
 
 			// UI for SCORING
@@ -345,50 +429,24 @@ public class Game extends ApplicationAdapter {
 				font.draw(batch, "FRENZY!!!", Constants.WIDTH/2-150, Constants.HEIGHT-10);
 			}
 
-			// combo animations
-			for (int i = 0; i < animations.size(); i++)
-			{
-				Animation temp = animations.get(i);
-
-				if (!temp.isDone())
-				{
-					if (temp instanceof ComboAnimation)
-					{
-						temp.time();
-
-						// font gets redder the higher the combo was
-						font.setColor(new Color(1f, 1f - (float)(lastCombo-3)/5, 0, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
-
-						font.getData().setScale((temp.getAnimationTimer())/(float)temp.getAnimationLasts());
-						font.draw(batch, lastCombo + " veggie combo", temp.position.x, temp.position.y);
-					} else if (temp instanceof CriticalAnimation)
-					{
-						temp.time();
-						font.setColor(new Color(0f, 1f, 1f, 1f-(temp.getAnimationTimer()/(float)temp.getAnimationLasts())));
-						font.getData().setScale((0.001f+temp.getAnimationTimer())/(float)temp.getAnimationLasts());
-						font.draw(batch, "critical \n   +10", temp.position.x, temp.position.y);
-					}
-
-				} else {
-					animations.remove(i);
-					i--;
-				}
-			}
 
 			// set everything back to normal for other font
 			font.getData().setScale(1f);
 			font.setColor(Color.WHITE);
+
 			// draw the game time counting down
 			drawTimer();
 
 			// ui for frozen timer
 			if (wave.isFrozenTime())
 			{
+				// this one covers the game timer
 				iceCubeSprite.setColor(new Color(1f, 1f, 1f, 0.8f));
-				iceCubeSprite.setPosition(Constants.WIDTH-120, Constants.HEIGHT-120);
+				iceCubeSprite.setPosition(Constants.WIDTH-125, Constants.HEIGHT-120);
 				iceCubeSprite.setSize(140, 140);
 				iceCubeSprite.draw(batch);
 
+				// this ice cube fills the whole screen
 				iceCubeSprite.setColor(new Color(1f, 1f, 1f, 0.5f));
 				iceCubeSprite.setPosition(-800, -800);
 				iceCubeSprite.setSize(3000, 3000);
@@ -404,15 +462,31 @@ public class Game extends ApplicationAdapter {
 			float deltaY = (720-mousePos.y) - (playButtonSprite.getY() + playButtonSprite.getHeight()/2);
 			float distance = (float)Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
 
+			float deltaX2 = mousePos.x - (instructionsButtonSprite.getX()+instructionsButtonSprite.getWidth()/2);
+			float deltaY2 = (720-mousePos.y) - (instructionsButtonSprite.getY() + instructionsButtonSprite.getHeight()/2);
+			float distance2 = (float)Math.sqrt(Math.pow(deltaX2, 2) + Math.pow(deltaY2, 2));
+
 			// check to see if player hits "play game"
 			if (slicing && distance <= playButtonSprite.getWidth()/2) {
 				sliceSound.play();
 				GAMESTATE = Constants.GAMEMODES;
 			}
 
+			if (slicing && distance2 <= instructionsButtonSprite.getWidth()/2) {
+				sliceSound.play();
+				GAMESTATE = Constants.INSTRUCTIONS;
+			}
+
+			if (!menuMusic.isPlaying()) {
+				instructionsMusic.stop();
+				menuMusic.play();
+				playingMusic.stop();
+			}
+
 			batch.begin();
 			menuSprite.draw(batch);
 			playButtonSprite.draw(batch);
+			instructionsButtonSprite.draw(batch);
 			batch.end();
 		} else if (GAMESTATE == Constants.GAMEMODES)
 		{
@@ -431,6 +505,18 @@ public class Game extends ApplicationAdapter {
 			gamemodesScreenSprite.draw(batch);
 			arcadePlayButtonSprite.draw(batch);
 			batch.end();
+		} else if (GAMESTATE == Constants.INSTRUCTIONS)
+		{
+			if (!instructionsMusic.isPlaying()) {
+				menuMusic.stop();
+				instructionsMusic.play();
+				playingMusic.stop();
+			}
+			batch.begin();
+			menuSprite.draw(batch);
+			font.getData().setScale(0.5f);
+			font.draw(batch, "Slice the fruit by draggin your mouse! \nMake sure to get power-ups whenever possible. \nPress (esc) to go back to the menu screen at any time.", Constants.WIDTH/2-525, Constants.HEIGHT/2);
+			batch.end();
 		}
 
 		renderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -438,13 +524,13 @@ public class Game extends ApplicationAdapter {
 		//updateBladePositionAndDraw();
 		renderer.end();
 	}
-
 	private void resetGame()
 	{
 		timer.setGameTime(60);
+		timer.setStopped(false);
+		wave.setPumpkinOut(false);
 		score = 0;
 		wave.resetWave();
-		timer.countDown();
 		timer.setFinished(false);
 		animations.clear();
 	}
@@ -480,7 +566,6 @@ public class Game extends ApplicationAdapter {
 			if (v != null)
 				renderer.circle(v.x, v.y, 10);
 		}
-
 	}
 
 	private void drawTimer()
@@ -552,6 +637,12 @@ public class Game extends ApplicationAdapter {
 				{
 					wave.setIsFrozenTime(true);
 					frozenSound.play();
+				} else if (f.getType().equals("Bomb"))
+				{
+					score-=10;
+					wave.resetWave();
+					break;
+					// do bombly stuff
 				}else {
 					Constants.GRAVITY = -0.25f; // don't mind me changing a constant
 
@@ -572,6 +663,8 @@ public class Game extends ApplicationAdapter {
 				}
 				sliceSound.play();
 				wave.slice(f);
+
+				animations.add(new SplatterAnimation(new Vector2(lastPosOfVeggie.x-50, lastPosOfVeggie.y-50)));
 			}
 
 			float distanceY = 0;//((float) Constants.HEIGHT /2 - f.getPos().y)/((float) Constants.HEIGHT /2);
@@ -656,6 +749,17 @@ public class Game extends ApplicationAdapter {
 				frozenEggplantSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
 				frozenEggplantSprite.setPosition(f.getPos().x, f.getPos().y);
 				frozenEggplantSprite.draw(batch);
+			} else if (f.getType().equals("Bomb")) {
+				// Eggplant ___________________________
+				// cast shadow on wall
+				bombSprite.setSize(f.getRadius() * 3, f.getRadius() * 3);
+				bombSprite.setPosition(f.getPos().x + 15, f.getPos().y - 15);
+				bombSprite.setColor(0.1f, 0.1f, 0.1f, 0.35f);
+				bombSprite.draw(batch);
+
+				bombSprite.setColor(1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f - distanceY + 0.2f, 1f);
+				bombSprite.setPosition(f.getPos().x, f.getPos().y);
+				bombSprite.draw(batch);
 			} else if (f.getType().equals("Pumpkin"))
 			{
 				// Pumpkin ___________________________

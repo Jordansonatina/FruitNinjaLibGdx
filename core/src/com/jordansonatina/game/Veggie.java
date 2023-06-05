@@ -62,6 +62,17 @@ public class Veggie {
             return;
         }
 
+        if (type.equals("Bomb"))
+        {
+            position = new Vector2((int)(Math.random() * (rightSpawnBounds-100 - leftSpawnBounds+100)+leftSpawnBounds), -radius);
+            if (position.x < Constants.WIDTH/2)
+                velocityX = (int)(Math.random()*(3)-3);
+            else
+                velocityX = (int)(Math.random()*3);
+            velocity = new Vector2(velocityX, (int)(Math.random() * (maxVelocity+1-minVelocity)+minVelocity));
+            return;
+        }
+
         position = new Vector2((int)(Math.random() * (rightSpawnBounds - leftSpawnBounds)+leftSpawnBounds), -radius);
         // if veggie spawns to the right make velocity negative and vice versa so the veggies bundle in the middle
         if (position.x > Constants.WIDTH/2)
